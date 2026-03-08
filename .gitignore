@@ -8,7 +8,7 @@ nginx/certs/*.crt
 
 # Данные и конфиг AdGuard Home (создаются при запуске, содержат пароли и БД)
 # Сами каталоги и .gitkeep оставляем в репозитории
-adguard/conf/*
+adguard/conf/.gitkeep
 !adguard/conf/.gitkeep
 adguard/work/*
 !adguard/work/.gitkeep
