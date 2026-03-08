@@ -1,14 +1,17 @@
 # Переменные окружения (раскомментируйте, если не хотите коммитить порты и TZ)
 # .env
 
-# SSL-сертификаты — не коммитить
-nginx/certs/*.pem
-nginx/certs/*.key
-nginx/certs/*.crt
+# SSL-сертификаты и метаданные Let's Encrypt — не коммитить
+nginx/certs/*
+!nginx/certs/.gitkeep
+
+# Webroot для ACME challenge: оставляем только .gitkeep
+nginx/certbot-webroot/*
+!nginx/certbot-webroot/.gitkeep
 
 # Данные и конфиг AdGuard Home (создаются при запуске, содержат пароли и БД)
 # Сами каталоги и .gitkeep оставляем в репозитории
-adguard/conf/.gitkeep
+adguard/conf/*
 !adguard/conf/.gitkeep
 adguard/work/*
 !adguard/work/.gitkeep

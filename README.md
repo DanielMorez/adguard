@@ -77,26 +77,80 @@ nslookup google.com 192.168.1.100
 
 ## Настройка SSL (HTTPS)
 
-### Вариант 1: Let's Encrypt (certbot)
+### Инструкция по Certbot (Let's Encrypt) — через Docker Compose (Ubuntu)
 
-1. Установите certbot на хост и получите сертификат для вашего домена (например, `dns.example.com`), указав в веб-сервере или в certbot путь для записи файлов. Затем скопируйте полученные файлы в проект:
+Можно не устанавливать `certbot` на хост. В `docker-compose.yml` уже добавлен сервис `certbot` (профиль `tools`) и webroot-каталог для ACME challenge.
 
-   ```bash
-   sudo cp /etc/letsencrypt/live/dns.example.com/fullchain.pem nginx/certs/
-   sudo cp /etc/letsencrypt/live/dns.example.com/privkey.pem nginx/certs/
-   sudo chown "$(whoami)" nginx/certs/*.pem
-   ```
+#### 1. Подготовка
 
-2. В **`nginx/nginx.conf`**:
-   - Раскомментируйте весь блок **HTTPS** (сервер на порту 443).
-   - При необходимости раскомментируйте редирект с HTTP на HTTPS в блоке `server` для порта 80:  
-     `return 301 https://$host$request_uri;`
+1. Убедитесь, что домен (например, `dns.example.com`) указывает на IP вашего сервера.
+2. Поднимите основные сервисы:
 
-3. Перезапустите Nginx:
+```bash
+docker compose up -d
+```
 
-   ```bash
-   docker compose restart nginx
-   ```
+#### 2. Выпуск первого сертификата (внутри Docker)
+
+```bash
+# Перейдите в каталог проекта
+cd /path/to/adguard
+
+# Выпуск сертификата через контейнер certbot (замените домен и e-mail)
+docker compose --profile tools run --rm certbot certonly \
+  --webroot -w /var/www/certbot \
+  -d dns.example.com \
+  --email admin@example.com \
+  --agree-tos --no-eff-email
+```
+
+Сертификаты будут сохранены в каталоге `nginx/certs/live/dns.example.com/` на хосте.
+
+#### 3. Включение HTTPS в Nginx
+
+1. В `nginx/nginx.conf` раскомментируйте HTTPS-блок (`server` на 443).
+2. В этом блоке замените пути сертификатов на ваши (пример):
+
+```nginx
+ssl_certificate     /etc/nginx/certs/live/dns.example.com/fullchain.pem;
+ssl_certificate_key /etc/nginx/certs/live/dns.example.com/privkey.pem;
+```
+
+3. При необходимости включите редирект HTTP -> HTTPS (раскомментируйте `return 301 ...` в блоке 80).
+4. Примените конфиг:
+
+```bash
+docker compose restart nginx
+```
+
+#### 4. Продление сертификата (renew)
+
+Периодически выполняйте:
+
+```bash
+docker compose --profile tools run --rm certbot renew --webroot -w /var/www/certbot
+```
+
+После успешного renew перезагрузите Nginx, чтобы он подхватил обновлённые сертификаты:
+
+```bash
+docker compose exec nginx nginx -s reload
+```
+
+Для Ubuntu можно добавить в cron (ежедневно в 03:00):
+
+```bash
+0 3 * * * cd /path/to/adguard && docker compose --profile tools run --rm certbot renew --webroot -w /var/www/certbot && docker compose exec -T nginx nginx -s reload
+```
+
+---
+
+### Вариант 1: Let's Encrypt (certbot) — кратко
+
+1. Выпустите сертификат через контейнер `certbot` (`docker compose --profile tools run --rm certbot certonly ...`).
+2. Укажите корректные пути к сертификатам в HTTPS-блоке `nginx/nginx.conf`.
+3. Раскомментируйте HTTPS-блок и (по желанию) редирект HTTP -> HTTPS.
+4. Выполните `docker compose restart nginx`.
 
 ### Вариант 2: Свой сертификат
 
