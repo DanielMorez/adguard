@@ -1,0 +1,43 @@
+services:
+  adguardhome:
+    image: adguard/adguardhome:latest
+    container_name: adguardhome
+    restart: unless-stopped
+    command: ["--web-addr", "0.0.0.0:${ADGUARD_WEB_PORT:-3000}"]
+    ports:
+      - "${DNS_PORT:-53}:53/tcp"
+      - "${DNS_PORT:-53}:53/udp"
+    volumes:
+      - ./adguard/conf:/opt/adguardhome/conf
+      - ./adguard/work:/opt/adguardhome/work
+      # Каталог с блок-листами: добавьте домены в blocked_adguard.txt и настройте фильтр в веб-интерфейсе
+      - ./blocklists:/opt/adguardhome/blocklists:ro
+    environment:
+      - TZ=${TZ:-Europe/Moscow}
+    networks:
+      - adguard-net
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --spider http://127.0.0.1:3000/ || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+  nginx:
+    image: nginx:alpine
+    container_name: adguard-nginx
+    restart: unless-stopped
+    ports:
+      - "${HTTP_PORT:-80}:80"
+      - "${HTTPS_PORT:-443}:443"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/certs:/etc/nginx/certs:ro
+    depends_on:
+      - adguardhome
+    networks:
+      - adguard-net
+
+networks:
+  adguard-net:
+    driver: bridge

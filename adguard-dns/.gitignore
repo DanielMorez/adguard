@@ -1,0 +1,27 @@
+# Переменные окружения (раскомментируйте, если не хотите коммитить порты и TZ)
+# .env
+
+# SSL-сертификаты — не коммитить
+nginx/certs/*.pem
+nginx/certs/*.key
+nginx/certs/*.crt
+
+# Данные и конфиг AdGuard Home (создаются при запуске, содержат пароли и БД)
+# Сами каталоги и .gitkeep оставляем в репозитории
+adguard/conf/*
+!adguard/conf/.gitkeep
+adguard/work/*
+!adguard/work/.gitkeep
+
+# Блок-лист можно коммитить; раскомментируйте, если храните там чувствительные данные
+# blocklists/
+
+# macOS
+.DS_Store
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
