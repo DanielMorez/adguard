@@ -1,30 +1,24 @@
-# Переменные окружения (раскомментируйте, если не хотите коммитить порты и TZ)
+# Переменные окружения (раскомментируйте при необходимости)
 # .env
 
-# SSL-сертификаты и метаданные Let's Encrypt — не коммитить
-nginx/certs/*
-!nginx/certs/.gitkeep
+# SSL и служебные данные Certbot
+certbot/conf/*
+!certbot/conf/.gitkeep
 
-# Webroot для ACME challenge: оставляем только .gitkeep
-nginx/certbot-webroot/*
-!nginx/certbot-webroot/.gitkeep
+# Webroot для ACME challenge
+certbot/www/*
+!certbot/www/.gitkeep
 
-# Данные и конфиг AdGuard Home (создаются при запуске, содержат пароли и БД)
-# Сами каталоги и .gitkeep оставляем в репозитории
+# Данные и конфиг AdGuard Home (оставляем только .gitkeep)
 adguard/conf/*
 !adguard/conf/.gitkeep
 adguard/work/*
 !adguard/work/.gitkeep
 
-# Блок-лист можно коммитить; раскомментируйте, если храните там чувствительные данные
-# blocklists/
-
-# macOS
-.DS_Store
-
-# IDE
+# IDE/OS
 .idea/
 .vscode/
+.DS_Store
 *.swp
 *.swo
 *~

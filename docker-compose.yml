@@ -4,24 +4,15 @@ services:
     container_name: adguardhome
     restart: unless-stopped
     command: ["--web-addr", "0.0.0.0:${ADGUARD_WEB_PORT:-3000}"]
+    volumes:
+      - ./adguard/work:/opt/adguardhome/work
+      - ./adguard/conf:/opt/adguardhome/conf
+      - ./blocklists:/opt/adguardhome/blocklists
     ports:
       - "${DNS_PORT:-53}:53/tcp"
       - "${DNS_PORT:-53}:53/udp"
-    volumes:
-      - ./adguard/conf:/opt/adguardhome/conf
-      - ./adguard/work:/opt/adguardhome/work
-      # Каталог с блок-листами: добавьте домены в blocked_adguard.txt и настройте фильтр в веб-интерфейсе
-      - ./blocklists:/opt/adguardhome/blocklists:ro
-    environment:
-      - TZ=${TZ:-Europe/Moscow}
     networks:
-      - adguard-net
-    healthcheck:
-      test: ["CMD-SHELL", "wget -q --spider http://127.0.0.1:3000/ || exit 1"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 60s
+      - dns-net
 
   nginx:
     image: nginx:alpine
@@ -32,24 +23,24 @@ services:
       - "${HTTPS_PORT:-443}:443"
     volumes:
       - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
-      - ./nginx/certs:/etc/nginx/certs:ro
-      - ./nginx/certbot-webroot:/var/www/certbot:ro
+      - ./certbot/www:/var/www/certbot:ro
+      - ./certbot/conf:/etc/nginx/ssl:ro
     depends_on:
       - adguardhome
     networks:
-      - adguard-net
-
+      - dns-net
 
   certbot:
     image: certbot/certbot:latest
-    container_name: adguard-certbot
-    profiles: ["tools"]
+    container_name: certbot
+    restart: unless-stopped
     volumes:
-      - ./nginx/certs:/etc/letsencrypt
-      - ./nginx/certbot-webroot:/var/www/certbot
+      - ./certbot/www:/var/www/certbot
+      - ./certbot/conf:/etc/letsencrypt
+    entrypoint: "/bin/sh -c 'trap exit TERM; while :; do certbot renew --webroot -w /var/www/certbot; sleep 12h & wait $${!}; done'"
     networks:
-      - adguard-net
+      - dns-net
 
 networks:
-  adguard-net:
+  dns-net:
     driver: bridge
