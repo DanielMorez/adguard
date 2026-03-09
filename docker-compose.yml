@@ -3,7 +3,6 @@ services:
     image: adguard/adguardhome:latest
     container_name: adguardhome
     restart: unless-stopped
-    command: ["--web-addr", "0.0.0.0:${ADGUARD_WEB_PORT:-3000}"]
     volumes:
       - ./adguard/work:/opt/adguardhome/work
       - ./adguard/conf:/opt/adguardhome/conf
