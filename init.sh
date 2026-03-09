@@ -159,15 +159,12 @@ dns:
   trusted_proxies:
     - 127.0.0.0/8
     - ::1/128
-    - 172.16.0.0/12
   protection_enabled: true
   filtering_enabled: true
   blocking_mode: default
   blocked_response_ttl: 10
 tls:
-  enabled: true
-  certificate_path: /opt/adguardhome/certs/live/${DOMAIN}/fullchain.pem
-  private_key_path: /opt/adguardhome/certs/live/${DOMAIN}/privkey.pem
+  enabled: false
 querylog:
   enabled: true
   file_enabled: true
