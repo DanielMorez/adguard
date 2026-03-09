@@ -38,6 +38,7 @@ dns:
   trusted_proxies:
     - 127.0.0.0/8
     - ::1/128
+    - 172.16.0.0/12
   protection_enabled: true
   filtering_enabled: true
   blocking_mode: default
@@ -47,7 +48,9 @@ dns:
   safebrowsing_enabled: false
   parental_enabled: false
 tls:
-  enabled: false
+  enabled: true
+  certificate_path: /opt/adguardhome/certs/live/__DOMAIN__/fullchain.pem
+  private_key_path: /opt/adguardhome/certs/live/__DOMAIN__/privkey.pem
 querylog:
   enabled: true
   file_enabled: true
