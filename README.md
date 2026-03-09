@@ -1,132 +1,122 @@
-# AdGuard Home DNS за Nginx (Docker Compose)
+# AdGuard Home DNS — production-ready Docker Compose
 
-Готовая инфраструктура для AdGuard Home с Nginx reverse proxy и Certbot в составе `docker-compose`.
+AdGuard Home + Nginx reverse proxy + Certbot (авто-renew SSL).
 
-После `docker compose up -d` работает:
-
-- `http://<server-ip>` — веб-интерфейс AdGuard Home через Nginx
-- DNS-запросы на порт `53` (TCP/UDP) — обрабатывает AdGuard Home
-- blocklist из `./blocklists/blocked_adguard.txt` доступен внутри контейнера
+После первичной настройки (`./init.sh`) все последующие запуски через `docker compose up -d` полностью production-ready: HTTPS, DNS, blocklist, авто-обновление сертификата.
 
 ---
 
-## Предварительные требования
+## Первичная настройка
 
-- Docker
-- Docker Compose
-- Домен (например, `adguard.choomba.tech`) с A-записью на IP вашего сервера
-- Свободные порты: `53/tcp`, `53/udp`, `80`, `443`
+```bash
+git clone <repo> && cd adguard
+./init.sh
+```
+
+Скрипт запросит:
+- **Домен** (должен указывать на IP сервера, например `adguard.choomba.tech`)
+- **Email** для Let's Encrypt
+- **Логин и пароль** для веб-интерфейса AdGuard Home
+
+Скрипт автоматически:
+1. Сгенерирует конфиг AdGuard Home (без мастера настройки)
+2. Запустит стек в HTTP-режиме
+3. Выпустит SSL-сертификат через Certbot
+4. Переключит nginx на HTTPS
+5. Запустит всё в production-режиме
 
 ---
 
-## Запуск
+## Последующие запуски
 
 ```bash
 docker compose up -d
 ```
 
-Проверка DNS:
+Всё работает из коробки: HTTPS + DNS + blocklist + авто-renew сертификата каждые 12 часов.
+
+---
+
+## Проверка
 
 ```bash
+# DNS
 nslookup google.com <IP-сервера>
+
+# HTTPS
+curl -I https://<ваш-домен>
 ```
 
 ---
 
-## SSL через Certbot внутри Docker Compose
+## Структура проекта
 
-### 1) Текущий `nginx.conf` работает по HTTP
-
-В конфиге уже есть блок для challenge:
-
-- `location /.well-known/acme-challenge/` -> `/var/www/certbot`
-
-Это нужно для верификации домена Let's Encrypt.
-
-### 2) Получить сертификат
-
-```bash
-docker compose run --rm --entrypoint certbot certbot certonly \
-  --webroot \
-  --webroot-path=/var/www/certbot \
-  --email your@email.com \
-  --agree-tos \
-  --no-eff-email \
-  -d adguard.choomba.tech
 ```
-
-Сертификаты появятся на хосте в каталоге:
-
-- `./certbot/conf/live/adguard.choomba.tech/`
-
-### 3) Включить HTTPS
-
-В `nginx/nginx.conf`:
-
-1. Раскомментируйте HTTPS-блок `server { listen 443 ssl; ... }`
-2. Убедитесь, что пути сертификатов такие:
-   - `/etc/nginx/ssl/live/adguard.choomba.tech/fullchain.pem`
-   - `/etc/nginx/ssl/live/adguard.choomba.tech/privkey.pem`
-3. (Опционально) включите редирект HTTP -> HTTPS в HTTP-блоке
-
-Примените изменения:
-
-```bash
-docker compose restart nginx
+├── docker-compose.yml          # adguardhome + nginx + certbot
+├── init.sh                     # первичная настройка (один раз)
+├── nginx/
+│   └── nginx.conf              # reverse proxy (генерируется init.sh)
+├── adguard/
+│   ├── conf/
+│   │   └── AdGuardHome.yaml    # конфиг AdGuard (генерируется init.sh)
+│   └── work/                   # данные (логи, статистика, кеш)
+├── certbot/
+│   ├── conf/                   # SSL-сертификаты Let's Encrypt
+│   └── www/                    # ACME webroot
+├── blocklists/
+│   └── blocked_adguard.txt     # blocklist (формат ||domain^)
+├── .env                        # переменные окружения
+└── README.md
 ```
-
-### 4) Автообновление сертификатов
-
-Сервис `certbot` в `docker-compose.yml` уже настроен на `renew` каждые 12 часов.
-
-Проверить вручную:
-
-```bash
-docker compose run --rm --entrypoint certbot certbot renew --webroot -w /var/www/certbot
-```
-
-После успешного renew перезагрузить nginx:
-
-```bash
-docker compose exec nginx nginx -s reload
-```
-
----
-
-## Blocklist
-
-1. Добавьте домены в `blocklists/blocked_adguard.txt` (по одному на строку)
-2. В AdGuard Home подключите список через фильтрацию (пользовательские правила или DNS-фильтры)
 
 ---
 
 ## Управление
 
+| Действие | Команда |
+|----------|---------|
+| Запустить | `docker compose up -d` |
+| Остановить | `docker compose stop` |
+| Перезапустить | `docker compose restart` |
+| Логи AdGuard | `docker compose logs -f adguardhome` |
+| Логи nginx | `docker compose logs -f nginx` |
+| Логи certbot | `docker compose logs -f certbot` |
+| Удалить контейнеры | `docker compose down` |
+| Принудительный renew SSL | `docker compose run --rm --entrypoint certbot certbot renew` |
+
+---
+
+## Смена пароля AdGuard Home
+
 ```bash
-docker compose stop
-docker compose start
-docker compose restart
-docker compose logs -f
-docker compose logs -f adguardhome
-docker compose logs -f nginx
-docker compose down
+docker compose stop adguardhome
+
+# Сгенерировать новый хеш
+NEW_HASH=$(docker run --rm httpd:2-alpine htpasswd -nbB admin НОВЫЙ_ПАРОЛЬ | cut -d: -f2)
+
+# Подставить в конфиг (замените СТАРЫЙ_ХЕШ на текущее значение из файла)
+sed -i "s|password:.*|password: ${NEW_HASH}|" adguard/conf/AdGuardHome.yaml
+
+docker compose start adguardhome
 ```
 
 ---
 
-## Переменные окружения (`.env`)
+## Переменные окружения (.env)
 
-- `ADGUARD_WEB_PORT=3000`
-- `DNS_PORT=53`
-- `HTTP_PORT=80`
-- `HTTPS_PORT=443`
-- `TZ=Europe/Moscow`
+| Переменная | По умолчанию | Назначение |
+|------------|-------------|------------|
+| `DNS_PORT` | 53 | Порт DNS на хосте |
+| `HTTP_PORT` | 80 | Порт HTTP на хосте |
+| `HTTPS_PORT` | 443 | Порт HTTPS на хосте |
+| `TZ` | Europe/Moscow | Часовой пояс |
 
 ---
 
-## Что хранится в каталогах
+## Blocklist
 
-- `adguard/conf` — конфигурация (`AdGuardHome.yaml` и т.д.)
-- `adguard/work` — данные (querylog, filters, статистика, сессии)
-- `certbot/www` — webroot для проверки домена (`http-01`)
-- `certbot/conf` — сертификаты Let's Encrypt
+Файл `blocklists/blocked_adguard.txt` содержит правила в формате `||domain^`.
+
+Подключение в AdGuard Home:
+- **Фильтрация → Пользовательские правила** — вставить содержимое
+- Или **Фильтрация → DNS-фильтры** — добавить как локальный фильтр

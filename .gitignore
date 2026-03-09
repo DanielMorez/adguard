@@ -1,6 +1,3 @@
-# Переменные окружения (раскомментируйте при необходимости)
-# .env
-
 # SSL и служебные данные Certbot
 certbot/conf/*
 !certbot/conf/.gitkeep
@@ -9,9 +6,7 @@ certbot/conf/*
 certbot/www/*
 !certbot/www/.gitkeep
 
-# Данные и конфиг AdGuard Home (оставляем только .gitkeep)
-adguard/conf/*
-!adguard/conf/.gitkeep
+# Рабочие данные AdGuard Home (логи, статистика, сессии, кеш фильтров)
 adguard/work/*
 !adguard/work/.gitkeep
 

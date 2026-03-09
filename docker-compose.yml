@@ -6,7 +6,7 @@ services:
     volumes:
       - ./adguard/work:/opt/adguardhome/work
       - ./adguard/conf:/opt/adguardhome/conf
-      - ./blocklists:/opt/adguardhome/blocklists
+      - ./blocklists:/opt/adguardhome/blocklists:ro
     ports:
       - "${DNS_PORT:-53}:53/tcp"
       - "${DNS_PORT:-53}:53/udp"
