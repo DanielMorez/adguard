@@ -164,7 +164,9 @@ dns:
   blocking_mode: default
   blocked_response_ttl: 10
 tls:
-  enabled: false
+  enabled: true
+  certificate_path: /opt/adguardhome/certs/live/adguard.choomba.tech/fullchain.pem
+  private_key_path: /opt/adguardhome/certs/live/adguard.choomba.tech/privkey.pem
 querylog:
   enabled: true
   file_enabled: true
