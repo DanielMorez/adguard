@@ -122,9 +122,69 @@ mkdir -p adguard/conf adguard/work certbot/www certbot/conf nginx blocklists
 
 # --- AdGuardHome.yaml ---
 echo ">>> Генерация AdGuardHome.yaml..."
-sed "s|__ADGUARD_PASSWORD_HASH__|${PASSWORD_HASH}|g" adguard/conf/AdGuardHome.yaml > adguard/conf/AdGuardHome.yaml.tmp
-sed -i "s|name: admin|name: ${AG_USER}|g" adguard/conf/AdGuardHome.yaml.tmp
-mv adguard/conf/AdGuardHome.yaml.tmp adguard/conf/AdGuardHome.yaml
+cat > adguard/conf/AdGuardHome.yaml <<AGEOF
+bind_host: 0.0.0.0
+bind_port: 3000
+users:
+  - name: ${AG_USER}
+    password: ${PASSWORD_HASH}
+http:
+  pprof:
+    port: 6060
+    enabled: false
+  address: 0.0.0.0:3000
+  session_ttl: 720h
+theme: auto
+dns:
+  bind_hosts:
+    - 0.0.0.0
+  port: 53
+  anonymize_client_ip: false
+  ratelimit: 20
+  ratelimit_subnet_len_ipv4: 24
+  ratelimit_subnet_len_ipv6: 56
+  refuse_any: true
+  upstream_dns:
+    - https://dns.cloudflare.com/dns-query
+    - https://dns.google/dns-query
+  bootstrap_dns:
+    - 1.1.1.1
+    - 8.8.8.8
+  upstream_mode: load_balance
+  cache_size: 4194304
+  blocked_hosts:
+    - version.bind
+    - id.server
+    - hostname.bind
+  trusted_proxies:
+    - 127.0.0.0/8
+    - ::1/128
+  protection_enabled: true
+  filtering_enabled: true
+  blocking_mode: default
+  blocked_response_ttl: 10
+tls:
+  enabled: false
+querylog:
+  enabled: true
+  file_enabled: true
+  interval: 24h
+  size_memory: 1000
+statistics:
+  enabled: true
+  interval: 24h
+filters:
+  - enabled: true
+    url: https://adguardteam.github.io/HostlistsRegistry/assets/filter_1.txt
+    name: AdGuard DNS filter
+    id: 1
+  - enabled: true
+    url: https://adguardteam.github.io/HostlistsRegistry/assets/filter_2.txt
+    name: AdAway Default Blocklist
+    id: 2
+user_rules: []
+schema_version: 28
+AGEOF
 
 # --- nginx.conf (HTTP-only для выпуска сертификата) ---
 echo ">>> Настройка nginx (HTTP-режим для выпуска сертификата)..."
