@@ -1,8 +1,8 @@
 # AdGuard Home DNS — production-ready Docker Compose
 
-AdGuard Home + Nginx reverse proxy + Certbot (авто-renew SSL).
+AdGuard Home (443, 853, 53, 3000) + Nginx только на 80 (ACME + редирект на HTTPS) + Certbot (авто-renew SSL).
 
-После первичной настройки (`./init.sh`) все последующие запуски через `docker compose up -d` полностью production-ready: HTTPS, DNS, blocklist, авто-обновление сертификата.
+После первичной настройки (`./init.sh`) все последующие запуски через `docker compose up -d`: HTTPS и DoH/DoT обслуживает сам AdGuard, nginx только выпуск/обновление сертификата и редирект с HTTP на HTTPS.
 
 ---
 
@@ -22,8 +22,8 @@ git clone <repo> && cd adguard
 1. Сгенерирует конфиг AdGuard Home (без мастера настройки)
 2. Запустит стек в HTTP-режиме
 3. Выпустит SSL-сертификат через Certbot
-4. Переключит nginx на HTTPS
-5. Запустит всё в production-режиме
+4. Переключит nginx на режим «только 80» (редирект на HTTPS)
+5. Запустит всё в production-режиме (443 и 853 проброшены в AdGuard)
 
 ---
 
@@ -45,7 +45,13 @@ nslookup google.com <IP-сервера>
 
 # HTTPS
 curl -I https://<ваш-домен>
+
+# DoH (если включён TLS и allow_unencrypted_doh, см. ниже)
+curl -sI "https://<ваш-домен>/dns-query?name=example.com&type=A"
 ```
+Ожидается ответ `HTTP/1.1 200 OK` и тело с DNS-ответом (не 404).
+
+---
 
 ---
 
@@ -83,6 +89,23 @@ curl -I https://<ваш-домен>
 | Логи certbot | `docker compose logs -f certbot` |
 | Удалить контейнеры | `docker compose down` |
 | Принудительный renew SSL | `docker compose run --rm --entrypoint certbot certbot renew` |
+
+---
+
+# DoH / DoT (443 и 853 — AdGuard)
+
+Порты 443 (HTTPS/DoH) и 853 (DoT) проброшены в контейнер AdGuard. В конфиге AdGuard включите TLS и укажите пути к сертификатам (правьте только YAML, не веб-интерфейс):
+
+```yaml
+tls:
+  enabled: true
+  port_https: 443
+  port_dns_over_tls: 853
+  certificate_path: /opt/adguardhome/certs/live/<ваш-домен>/fullchain.pem
+  private_key_path:  /opt/adguardhome/certs/live/<ваш-домен>/privkey.pem
+```
+
+`allow_unencrypted_doh` при такой схеме не нужен (TLS терминация в AdGuard). После правок: `docker compose restart adguardhome`.
 
 ---
 

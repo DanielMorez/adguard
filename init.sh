@@ -42,7 +42,7 @@ http {
 NGINXEOF
 }
 
-# --- Nginx config for production (HTTPS + redirect) ---
+# --- Nginx config for production (только 80: ACME + редирект, 443 держит AdGuard) ---
 write_production_nginx() {
     cat > nginx/nginx.conf <<NGINXEOF
 events {
@@ -66,29 +66,6 @@ http {
 
         location / {
             return 301 https://\$host\$request_uri;
-        }
-    }
-
-    server {
-        listen 443 ssl;
-        server_name ${DOMAIN};
-
-        ssl_certificate     /etc/nginx/ssl/live/${DOMAIN}/fullchain.pem;
-        ssl_certificate_key /etc/nginx/ssl/live/${DOMAIN}/privkey.pem;
-        ssl_protocols       TLSv1.2 TLSv1.3;
-
-        location / {
-            set \$adguard_upstream adguardhome:3000;
-            proxy_pass http://\$adguard_upstream;
-            proxy_http_version 1.1;
-            proxy_set_header Host \$host;
-            proxy_set_header X-Real-IP \$remote_addr;
-            proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
-            proxy_set_header X-Forwarded-Proto \$scheme;
-            proxy_set_header Upgrade \$http_upgrade;
-            proxy_set_header Connection "upgrade";
-            proxy_connect_timeout 60s;
-            proxy_read_timeout 86400s;
         }
     }
 }
