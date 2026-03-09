@@ -7,6 +7,7 @@ services:
       - ./adguard/work:/opt/adguardhome/work
       - ./adguard/conf:/opt/adguardhome/conf
       - ./blocklists:/opt/adguardhome/blocklists:ro
+      - ./certbot/conf:/opt/adguardhome/certs:ro
     ports:
       - "${DNS_PORT:-53}:53/tcp"
       - "${DNS_PORT:-53}:53/udp"
