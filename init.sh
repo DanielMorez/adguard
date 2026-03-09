@@ -164,7 +164,7 @@ dns:
   blocking_mode: default
   blocked_response_ttl: 10
 tls:
-  enabled: true
+  enabled: false
   certificate_path: /opt/adguardhome/certs/live/${DOMAIN}/fullchain.pem
   private_key_path: /opt/adguardhome/certs/live/${DOMAIN}/privkey.pem
 querylog:
